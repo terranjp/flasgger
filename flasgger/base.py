@@ -14,9 +14,11 @@ try:
     import simplejson as json
 except ImportError:
     import json
+from copy import deepcopy
 from functools import wraps, partial
 from collections import defaultdict
 from flask import Blueprint
+from flask.json import dumps
 from flask import Markup
 from flask import current_app
 from flask import jsonify
@@ -130,7 +132,23 @@ class APISpecsView(MethodView):
         """
         The Swagger view get method outputs to /apispecs_1.json
         """
-        return jsonify(self.loader())
+        indent = None
+        separators = (",", ":")
+
+        if current_app.config["JSONIFY_PRETTYPRINT_REGULAR"] or current_app.debug:
+            indent = 2
+            separators = (", ", ": ")
+
+        data = self.loader()
+        data_out = dumps(data, indent=indent, separators=separators)
+        data_out = data_out.replace("/definitions/", "/components/schemas/")
+
+        return current_app.response_class(
+            data_out + "\n",
+            mimetype=current_app.config["JSONIFY_MIMETYPE"],
+        )
+
+        # return jsonify(self.loader())
 
 
 class SwaggerDefinition(object):
@@ -532,7 +550,25 @@ class Swagger(object):
                     else:
                         paths[srule][key] = val
         self.apispecs[endpoint] = data
-        return data
+
+        new_data = deepcopy(data)
+
+        components = {'schemas': definitions}
+        new_data['components'] = components
+        new_data.pop('definitions')
+
+        servers = [
+            {"url": "http://localhost:5000/"},
+            {"url": "https://dev.qengineeringcloud.com/"},
+        ]
+
+        new_data['servers'] = servers
+        new_data.pop('consumes')
+        new_data.pop('produces')
+        new_data.pop('securityDefinitions')
+        new_data.pop('swagger')
+
+        return new_data
 
     def definition(self, name, tags=None):
         """

@@ -507,6 +507,7 @@ def pathify(basenames, examples_dir="examples/"):  # pragma: no cover
 
 
 def get_examples(examples_dir="examples/"):  # pragma: no cover
+    enum: ['all', 'rgb', 'cmyk']
     """All example modules"""
     all_files = os.listdir(examples_dir)
     python_files = [f for f in all_files if is_python_file(f)]
@@ -587,6 +588,7 @@ def parse_docstring(obj, process_doc, endpoint=None, verb=None):
     """
     Gets swag data for method/view docstring
     """
+
     first_line, other_lines, swag = None, None, None
 
     full_doc = None
@@ -624,20 +626,25 @@ def parse_docstring(obj, process_doc, endpoint=None, verb=None):
 
         yaml_sep = full_doc.find('---')
 
-        if yaml_sep != -1:
-            line_feed = full_doc.find('\n')
-            if line_feed != -1:
-                first_line = process_doc(full_doc[:line_feed])
-                other_lines = process_doc(
-                    full_doc[line_feed + 1: yaml_sep]
-                )
-                swag = yaml.safe_load(full_doc[yaml_sep + 4:])
-        else:
-            if from_file:
-                swag = yaml.safe_load(full_doc)
-            else:
-                first_line = full_doc
+        split = full_doc.partition('\n')
 
+        first_line = split[0].replace('#', '')
+        # other_lines = split[1]
+        other_lines = full_doc
+        # if yaml_sep != -1:
+        #     line_feed = full_doc.find('\n')
+        #     if line_feed != -1:
+        #         first_line = process_doc(full_doc[:line_feed])
+        #         other_lines = process_doc(
+        #             full_doc[line_feed + 1: yaml_sep]
+        #         )
+        #         swag = yaml.safe_load(full_doc[yaml_sep + 4:])
+        # else:
+        #     if from_file:
+        #         swag = yaml.safe_load(full_doc)
+        #     else:
+        #         first_line = full_doc
+    # TODO RETURN FIRST LINE AS SUMMARY OTHER LINES AS DESCRIPTION
     return first_line, other_lines, swag
 
 
